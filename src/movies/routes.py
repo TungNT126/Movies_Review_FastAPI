@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.auth.dependencies import AccessTokenBearer
 from src.db.models import Movie
-from src.movies.schemas import MovieBase, MovieCreateModel, MovieUpdateModel, MovieReadModel
+from src.movies.schemas import MovieCreateModel, MovieUpdateModel, MovieReadModel
 from src.db.main import get_session
 from src.movies.service import MovieService
 

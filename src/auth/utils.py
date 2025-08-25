@@ -39,9 +39,6 @@ def create_token(user_data: dict, expiry: timedelta, refresh: bool = False):
 
     return token
 
-def valid_token(token: str):
-    pass
-
 def decode_token(token: str) -> dict:
     try:
         token_data = jwt.decode(
