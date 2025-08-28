@@ -1,8 +1,8 @@
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from src.auth.schemas import UserBase, UserCreateModel, UserSignUp
+from src.auth.schemas import UserCreateModel
 from src.db.models import User
-from src.auth.utils import hash_passwd, verify_passwd
+from src.auth.utils import hash_passwd
 
 
 
@@ -27,6 +27,7 @@ class UserService:
         )
 
         new_user.password_hash = hash_passwd(user_data_dict['password'])
+        new_user.role = "user"
         new_user.is_verified = True
 
         session.add(new_user)

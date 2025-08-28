@@ -9,7 +9,7 @@ token_blocklist = aioredis.Redis(
     db=0    
 )
 
-# Add to token to block list
+# Add token to block list
 async def add_jti_to_blocklist(jti: str) -> None:
     await token_blocklist.set(name=jti, value="", ex=JTI_EXPIRY)
 

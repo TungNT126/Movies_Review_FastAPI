@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from src.auth.schemas import UserBase, UserCreateModel, UserSignUp
 from src.auth.service import UserService
 from sqlmodel.ext.asyncio.session import AsyncSession
-from .dependencies import RefreshTokenBearer, AccessTokenBearer, get_current_user
+from .dependencies import RefreshTokenBearer, AccessTokenBearer, get_current_user, RoleChecker
 from src.db.redis import add_jti_to_blocklist
 
 from src.auth.utils import verify_passwd
@@ -16,7 +16,9 @@ REFRESH_TOKEN_EXP = 2
 
 user_service = UserService()
 user_router = APIRouter()
+role_checker = RoleChecker(['admin', 'user'])
 
+# dependencies equal a list, 'Depends' must be inside routes
 @user_router.post("/signup",response_model=UserBase)
 async def sign_up(user_data: UserCreateModel, session: AsyncSession = Depends(get_session)):
     email = user_data.email
@@ -43,7 +45,8 @@ async def sign_in(login_data:UserSignUp, session: AsyncSession = Depends(get_ses
             access_token = create_token(
                 user_data={
                     "email": user.email,
-                    "uid": str(user.uid)
+                    "uid": str(user.uid),
+                    "role": user.role
                 },
                 expiry=None
             )
@@ -69,13 +72,9 @@ async def sign_in(login_data:UserSignUp, session: AsyncSession = Depends(get_ses
                 }
             )
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid email or password!")
-        
 
-# @user_router.get("/me")
-# async def get_current_user(user = Depends(get_current_user)):
-#     return user
 
-@user_router.get('/refresh_token')
+@user_router.get('/refresh_token', dependencies=[Depends(role_checker)])
 async def get_new_access_token(token_details: dict = Depends(RefreshTokenBearer())):
     expiry_timestamp = token_details['exp']
     # If exp_time > time right now => expired!
@@ -87,8 +86,8 @@ async def get_new_access_token(token_details: dict = Depends(RefreshTokenBearer(
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token")
 
 
-@user_router.get('/me')
-async def get_current_user(user = Depends(get_current_user)):
+@user_router.get('/me', dependencies=[Depends(role_checker)])
+async def get_current_user(user = Depends(get_current_user), _:bool=Depends(role_checker)):
     return user
 
 
