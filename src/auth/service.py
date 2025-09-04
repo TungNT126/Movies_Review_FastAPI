@@ -1,9 +1,8 @@
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from src.auth.schemas import UserCreateModel
+from src.auth.schemas import UserCreateModel, UserUpdateModel
 from src.db.models import User
 from src.auth.utils import hash_passwd
-
 
 
 class UserService:
@@ -18,8 +17,6 @@ class UserService:
         return result if result is not None else False
         
     async def create_user(self, user_data: UserCreateModel, session: AsyncSession):
-        
-
         user_data_dict = user_data.model_dump()
 
         new_user = User(
@@ -35,7 +32,25 @@ class UserService:
         return new_user
 
 
-    async def logout(self):
-        pass
+    async def get_all_users(self, session: AsyncSession):
+        statement = select(User).order_by(User.first_name)
+        results = await session.exec(statement)
+
+        return results.all()
+    
+    async def update_user(self, email: str, user_data: UserUpdateModel, session: AsyncSession):
+        user_to_update = await self.get_user_by_email(email,session)
+
+        if user_to_update is not None:
+            update_data_dict = user_data.model_dump(exclude_unset=True)
+            for k, v in update_data_dict.items():
+                setattr(user_to_update,k,v)   
+            
+            await session.commit()
+            return user_to_update
+        else:
+            return None
+
+
         
 

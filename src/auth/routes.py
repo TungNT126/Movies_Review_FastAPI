@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
-from src.auth.schemas import UserBase, UserCreateModel, UserSignUp
+from src.auth.schemas import UserBase, UserCreateModel, UserSignUp, UserUpdateModel
 from src.auth.service import UserService
 from sqlmodel.ext.asyncio.session import AsyncSession
 from .dependencies import RefreshTokenBearer, AccessTokenBearer, get_current_user, RoleChecker
@@ -16,7 +16,8 @@ REFRESH_TOKEN_EXP = 2
 
 user_service = UserService()
 user_router = APIRouter()
-role_checker = RoleChecker(['admin', 'user'])
+role_checker = RoleChecker(['admin'])
+access_token_bearer = AccessTokenBearer()
 
 # dependencies equal a list, 'Depends' must be inside routes
 @user_router.post("/signup",response_model=UserBase)
@@ -86,13 +87,30 @@ async def get_new_access_token(token_details: dict = Depends(RefreshTokenBearer(
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token")
 
 
-@user_router.get('/me', dependencies=[Depends(role_checker)])
+@user_router.get('/me')
 async def get_current_user(user = Depends(get_current_user), _:bool=Depends(role_checker)):
     return user
 
+@user_router.get("/", dependencies=[Depends(role_checker)])
+async def get_all_users(session: AsyncSession = Depends(get_session), user_detail = Depends(access_token_bearer)):
+    users = await user_service.get_all_users(session)
+
+    if users is not None:
+        return users
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found users!")
+    
+@user_router.patch("/{user_uid}")
+async def update_user(email: str, user_data: UserUpdateModel, session: AsyncSession = Depends(get_session), user_detail = Depends(access_token_bearer)): 
+    statement = await user_service.update_user(email, user_data, session)
+    if statement is not None:
+        return statement
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found user!")    
+
 
 @user_router.get('/logout')
-async def revoke_token(token_details: dict = Depends(AccessTokenBearer())):
+async def revoke_token(token_details: dict = Depends(access_token_bearer)):
     jti = token_details['jti']
 
     await add_jti_to_blocklist(jti)
