@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from src.movies.routes import movie_router
 from src.auth.routes import user_router
+from src.reviews.routes import review_router
 
 from src.db.main import init_db, drop_movies_table
 
@@ -23,3 +24,4 @@ app=FastAPI(
 
 app.include_router(movie_router, prefix="/api/{version}/movies", tags=["Movies"])
 app.include_router(user_router, prefix="/api/{version}/users", tags=['Users']) 
+app.include_router(review_router, prefix="/api/{version}/reviews", tags=["Reviews"])
